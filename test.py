@@ -1,11 +1,9 @@
 import torch
 import torch.nn.functional as F
 import numpy as np
-import cv2
-import matplotlib.pyplot as plt
-from model import UNet
-import argparse
+from PIL import Image
 import os
+from model import UNet  # Импорт модели
 
 def dice_coefficient(pred, target, smooth=1e-6):
     pred = pred.view(-1)
@@ -21,67 +19,53 @@ def iou_score(pred, target, smooth=1e-6):
     return (intersection + smooth) / (union + smooth)
 
 def load_image(path, size=(624, 320)):
-    img = cv2.imread(path, cv2.IMREAD_GRAYSCALE).astype(np.float32) / 255.0
-    img = cv2.resize(img, size)
-    return img
+    # Используем PIL для открытия и преобразования изображения
+    img = Image.open(path).convert("L")
+    img = img.resize(size)
+    img_np = np.array(img).astype(np.float32) / 255.0
+    return img_np
 
-def main():
-    parser = argparse.ArgumentParser(description="Evaluate UNet on one image")
-    parser.add_argument("image_path", type=str, help="Path to the input image")
-    parser.add_argument("--weights", type=str, default="unet_pseudo_oilspill.pth",
-                        help="Path to the saved .pth weights")
-    parser.add_argument("--threshold", type=float, default=0.5,
-                        help="Threshold for pseudo-mask and for binarizing prediction")
-    args = parser.parse_args()
+def run_evaluation(image_path, weights="unet_pseudo_oilspill.pth", threshold=0.5):
+    # Проверка файла изображения
+    if not os.path.isfile(image_path):
+        raise FileNotFoundError(f"Image file '{image_path}' not found")
 
-    # Проверка файла
-    if not os.path.isfile(args.image_path):
-        raise FileNotFoundError(f"Image file '{args.image_path}' not found")
+    # Проверка файла модели
+    if not os.path.isfile(weights):
+        raise FileNotFoundError(f"Model weights file '{weights}' not found")
+
+    # Загружаем оригинальное изображение для отображения
+    original_img = Image.open(image_path)
+    original_img_np = np.array(original_img).astype(np.uint8)  # Сохраняем как uint8 для отображения
 
     # Загружаем модель
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = UNet().to(device)
-    model.load_state_dict(torch.load(args.weights, map_location=device))
+    model.load_state_dict(torch.load(weights, map_location=device))
     model.eval()
 
-    # Загружаем и подготавливаем изображение
-    img_np = load_image(args.image_path)
+    # Загружаем и подготавливаем изображение для обработки
+    img_np = load_image(image_path)
     img_tensor = torch.tensor(img_np).unsqueeze(0).unsqueeze(0).to(device)  # shape (1,1,H,W)
 
-    # Генерируем псевдомаску как «эталон»
-    gt_mask_np = (img_np < args.threshold).astype(np.float32)
+    # Генерируем псевдомаску как эталон
+    gt_mask_np = (img_np < threshold).astype(np.float32)
     gt_mask_t = torch.tensor(gt_mask_np).unsqueeze(0).unsqueeze(0).to(device)
 
     # Предсказание
     with torch.no_grad():
         pred = model(img_tensor)
-    pred_mask_t = (pred > args.threshold).float()
+    pred_mask_t = (pred > threshold).float()
 
     # Считаем метрики
     dice = dice_coefficient(pred_mask_t, gt_mask_t).item()
-    iou  = iou_score(pred_mask_t, gt_mask_t).item()
-    print(f"Dice coefficient: {dice:.4f}")
-    print(f"IoU score       : {iou:.4f}")
+    iou = iou_score(pred_mask_t, gt_mask_t).item()
 
-    # Визуализация
-    plt.figure(figsize=(12,4))
-    plt.subplot(1,3,1)
-    plt.imshow(img_np, cmap='gray')
-    plt.title("Input Image")
-    plt.axis('off')
-
-    plt.subplot(1,3,2)
-    plt.imshow(gt_mask_np, cmap='gray')
-    plt.title("Pseudo-Ground-Truth")
-    plt.axis('off')
-
-    plt.subplot(1,3,3)
-    plt.imshow(pred_mask_t.squeeze().cpu().numpy(), cmap='gray')
-    plt.title("Model Prediction")
-    plt.axis('off')
-
-    plt.tight_layout()
-    plt.show()
-
-if __name__ == "__main__":
-    main()
+    # Возвращаем результаты и данные для отображения
+    return {
+        "dice": dice,
+        "iou": iou,
+        "input_image": original_img_np,  # Оригинальное изображение
+        "gt_mask": (gt_mask_np * 255).astype(np.uint8),
+        "pred_mask": (pred_mask_t.squeeze().cpu().numpy() * 255).astype(np.uint8)
+    }
