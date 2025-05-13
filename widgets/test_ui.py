@@ -20,7 +20,7 @@ class TestingThread(QThread):
     def run(self):
         try:
             results = run_evaluation(self.image_path, self.model_path)
-            output = f"Dice coefficient: {results['dice']:.4f}\nIoU score: {results['iou']:.4f}"
+            output = f"Коэффициент Dice: {results['dice']:.4f}\nЗначение IoU: {results['iou']:.4f}"
             self.output_signal.emit(output)
             self.results_signal.emit(results)
         except Exception as e:
@@ -74,7 +74,7 @@ class TestingWidget(QWidget):
 
         # Input Image
         input_layout = QVBoxLayout()
-        self.input_text_label = QLabel("Input Image")
+        self.input_text_label = QLabel("Исходное изображение")
         self.input_text_label.setAlignment(Qt.AlignCenter)
         input_layout.addWidget(self.input_text_label)
         self.input_image_label = QLabel()
@@ -85,7 +85,7 @@ class TestingWidget(QWidget):
 
         # Pseudo-Ground-Truth
         gt_layout = QVBoxLayout()
-        self.gt_text_label = QLabel("Pseudo-Ground-Truth")
+        self.gt_text_label = QLabel("Ожидаемый результат")
         self.gt_text_label.setAlignment(Qt.AlignCenter)
         gt_layout.addWidget(self.gt_text_label)
         self.gt_mask_label = QLabel()
@@ -96,7 +96,7 @@ class TestingWidget(QWidget):
 
         # Model Prediction
         pred_layout = QVBoxLayout()
-        self.pred_text_label = QLabel("Model Prediction")
+        self.pred_text_label = QLabel("Результат работы модели")
         self.pred_text_label.setAlignment(Qt.AlignCenter)
         pred_layout.addWidget(self.pred_text_label)
         self.pred_mask_label = QLabel()
