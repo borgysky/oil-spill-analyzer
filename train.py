@@ -40,7 +40,7 @@ def main():
     IMAGE_DIR  = args.data
     SAVE_PATH  = args.output
     BATCH_SIZE = 4
-    EPOCHS     = 2
+    EPOCHS     = 25
     LR         = 1e-4
     THRESHOLD  = 0.5
 

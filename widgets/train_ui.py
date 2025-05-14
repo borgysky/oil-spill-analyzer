@@ -51,7 +51,7 @@ class TrainingWidget(QWidget):
         layout.addWidget(self.select_dataset_button)
 
         # --- Model save path ---
-        self.model_label = QLabel("Путь к готовой модели:")
+        self.model_label = QLabel("Папка сохранения:")
         layout.addWidget(self.model_label)
 
         self.model_path_field = QTextEdit()

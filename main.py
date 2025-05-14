@@ -38,7 +38,6 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.analysis_widget)
         self.stack.addWidget(self.training_widget)
         self.stack.addWidget(self.testing_widget)
-
         self.setCentralWidget(self.stack)
         self.switch_mode(0)
 
