@@ -20,7 +20,7 @@ def analyze_save(image_path, model_path, threshold=0.5):
     with open(image_path, "rb") as f:
         pil_img = Image.open(io.BytesIO(f.read()))
         pil_img = pil_img.convert("RGB")
-        original_img = np.array(pil_img)[:, :, ::-1]  # RGB → BGR для OpenCV
+        original_img = np.array(pil_img)[:, :, ::-1]
         img_gray = np.array(pil_img.convert("L"))
 
     orig_h, original_w = img_gray.shape

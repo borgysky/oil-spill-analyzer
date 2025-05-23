@@ -13,7 +13,6 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Обнаружение разливов нефти")
         self.setMinimumSize(600, 500)
 
-        # Меню
         menubar = self.menuBar()
         mode_menu = menubar.addMenu("Режим")
 
@@ -29,7 +28,6 @@ class MainWindow(QMainWindow):
         training_action.triggered.connect(lambda: self.switch_mode(1))
         testing_action.triggered.connect(lambda: self.switch_mode(2))
 
-        # Виджеты
         self.stack = QStackedWidget()
         self.analysis_widget = ImageAnalysisWidget()
         self.training_widget = TrainingWidget()

@@ -62,17 +62,14 @@ class TestingWidget(QWidget):
         self.select_model_button.clicked.connect(self.select_model)
         layout.addWidget(self.select_model_button)
 
-        # --- Output area ---
         self.output_text = QTextEdit()
         self.output_text.setReadOnly(True)
-        self.output_text.setMaximumHeight(50)  # Уменьшенный размер текстового поля
+        self.output_text.setMaximumHeight(50) 
         layout.addWidget(QLabel("Результаты тестирования:"))
         layout.addWidget(self.output_text)
 
-        # --- Image display area ---
         images_layout = QHBoxLayout()
 
-        # Input Image
         input_layout = QVBoxLayout()
         self.input_text_label = QLabel("Исходное изображение")
         self.input_text_label.setAlignment(Qt.AlignCenter)
@@ -83,7 +80,6 @@ class TestingWidget(QWidget):
         input_layout.addWidget(self.input_image_label)
         images_layout.addLayout(input_layout)
 
-        # Pseudo-Ground-Truth
         gt_layout = QVBoxLayout()
         self.gt_text_label = QLabel("Ожидаемый результат")
         self.gt_text_label.setAlignment(Qt.AlignCenter)
@@ -94,7 +90,6 @@ class TestingWidget(QWidget):
         gt_layout.addWidget(self.gt_mask_label)
         images_layout.addLayout(gt_layout)
 
-        # Model Prediction
         pred_layout = QVBoxLayout()
         self.pred_text_label = QLabel("Результат работы модели")
         self.pred_text_label.setAlignment(Qt.AlignCenter)
@@ -107,7 +102,6 @@ class TestingWidget(QWidget):
 
         layout.addLayout(images_layout)
 
-        # --- Test button ---
         self.test_button = QPushButton("Запустить тестирование")
         self.test_button.clicked.connect(self.run_testing)
         layout.addWidget(self.test_button)
@@ -132,7 +126,7 @@ class TestingWidget(QWidget):
 
     def run_testing(self):
         if not self.image_path or not self.model_path:
-            QMessageBox.warning(self, "Ошибка", "Пожалуйста, выберите изображение и модель.")
+            QMessageBox.warning(self, "Внимание", "Выберите изображение и модель.")
             return
 
         self.output_text.clear()
@@ -149,30 +143,25 @@ class TestingWidget(QWidget):
         self.output_text.append(text)
 
     def show_results(self, results):
-        # Convert numpy arrays to QImage and display
         def numpy_to_qimage(np_array, is_grayscale=True):
             if is_grayscale:
                 height, width = np_array.shape
                 qimage = QImage(np_array.data, width, height, width, QImage.Format_Grayscale8)
             else:
-                # Для цветного изображения (RGB)
                 if np_array.ndim == 2:
-                    np_array = np.stack([np_array] * 3, axis=-1)  # Если grayscale, конвертируем в RGB
+                    np_array = np.stack([np_array] * 3, axis=-1)
                 elif np_array.shape[2] == 4:
-                    np_array = np_array[:, :, :3]  # Удаляем альфа-канал, если есть
+                    np_array = np_array[:, :, :3]
                 height, width, _ = np_array.shape
                 qimage = QImage(np_array.data, width, height, 3 * width, QImage.Format_RGB888)
             return qimage.scaled(200, 200, Qt.KeepAspectRatio)
 
-        # Input Image (цветное)
         input_qimage = numpy_to_qimage(results["input_image"], is_grayscale=False)
         self.input_image_label.setPixmap(QPixmap.fromImage(input_qimage))
 
-        # Pseudo-Ground-Truth (grayscale)
         gt_qimage = numpy_to_qimage(results["gt_mask"], is_grayscale=True)
         self.gt_mask_label.setPixmap(QPixmap.fromImage(gt_qimage))
 
-        # Model Prediction (grayscale)
         pred_qimage = numpy_to_qimage(results["pred_mask"], is_grayscale=True)
         self.pred_mask_label.setPixmap(QPixmap.fromImage(pred_qimage))
 

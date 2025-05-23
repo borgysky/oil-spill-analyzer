@@ -1,5 +1,3 @@
-import os
-import cv2
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QPushButton, QVBoxLayout,
     QHBoxLayout, QFileDialog, QMessageBox, QTextEdit
@@ -7,7 +5,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt
 import detect
-
+from PIL import Image
 
 class ImageAnalysisWidget(QWidget):
     def __init__(self):
@@ -18,7 +16,6 @@ class ImageAnalysisWidget(QWidget):
 
         layout = QVBoxLayout()
 
-        # --- Image path ---
         self.path_label = QLabel("Изображение для анализа:")
         layout.addWidget(self.path_label)
 
@@ -31,7 +28,6 @@ class ImageAnalysisWidget(QWidget):
         self.select_button.clicked.connect(self.select_image)
         layout.addWidget(self.select_button)
 
-        # --- Model path ---
         self.model_label = QLabel("Путь к модели нейросети:")
         layout.addWidget(self.model_label)
 
@@ -45,7 +41,6 @@ class ImageAnalysisWidget(QWidget):
         self.select_model_button.clicked.connect(self.select_model)
         layout.addWidget(self.select_model_button)
 
-        # --- Image result ---
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.image_label, stretch=1)
@@ -56,7 +51,6 @@ class ImageAnalysisWidget(QWidget):
         button_layout.addWidget(self.analyze_button)
 
         self.save_button = QPushButton("Сохранить результат")
-        self.save_button.setEnabled(False)
         self.save_button.clicked.connect(self.save_result)
         button_layout.addWidget(self.save_button)
 
@@ -72,7 +66,7 @@ class ImageAnalysisWidget(QWidget):
             self.path_field.setText(path)
             pixmap = QPixmap(path).scaled(500, 300, Qt.KeepAspectRatio)
             self.image_label.setPixmap(pixmap)
-            self.save_button.setEnabled(False)
+            self.result_img = None
 
     def select_model(self):
         model_path, _ = QFileDialog.getOpenFileName(
@@ -84,23 +78,21 @@ class ImageAnalysisWidget(QWidget):
 
     def analyze_image(self):
         if not self.image_path or not self.model_path:
-            QMessageBox.warning(self, "Внимание", "Сначала выберите изображение и модель.")
+            QMessageBox.warning(self, "Внимание", "Выберите изображение и модель.")
             return
         try:
-            # Pass both image_path and model_path
             self.result_img = detect.analyze_save(self.image_path, self.model_path)
             height, width, channel = self.result_img.shape
             bytes_per_line = 3 * width
             qimg = QImage(self.result_img.data, width, height, bytes_per_line, QImage.Format_BGR888)
             pixmap = QPixmap.fromImage(qimg).scaled(500, 300, Qt.KeepAspectRatio)
             self.image_label.setPixmap(pixmap)
-            self.save_button.setEnabled(True)
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", str(e))
 
     def save_result(self):
         if self.result_img is None:
-            QMessageBox.warning(self, "Нет результата", "Сначала проанализируйте изображение.")
+            QMessageBox.warning(self, "Внимание", "Проанализируйте изображение, чтобы сохранить результат.")
             return
         save_path, _ = QFileDialog.getSaveFileName(
             self, "Сохранить результат", "result.jpg",
@@ -108,7 +100,9 @@ class ImageAnalysisWidget(QWidget):
         )
         if save_path:
             try:
-                cv2.imwrite(save_path, self.result_img)
+                rgb_img = self.result_img[:, :, ::-1]
+                pil_img = Image.fromarray(rgb_img)
+                pil_img.save(save_path)
                 QMessageBox.information(self, "Сохранено", f"Результат сохранён в:\n{save_path}")
             except Exception as e:
                 QMessageBox.critical(self, "Ошибка при сохранении", str(e))
