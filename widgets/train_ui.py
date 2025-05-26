@@ -2,17 +2,23 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton, QTextEdit,
     QFileDialog, QProgressBar, QComboBox, QLineEdit, QMessageBox
 )
-from PyQt5.QtCore import Qt, QThread
+from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from train import Trainer
 import os
+from PIL import Image
 
 class TrainingThread(QThread):
+    error_signal = pyqtSignal(str)  # Новый сигнал для ошибок
+
     def __init__(self, dataset_path, model_path, batch_size, epochs):
         super().__init__()
         self.trainer = Trainer(dataset_path, model_path, batch_size=batch_size, epochs=epochs)
 
     def run(self):
-        self.trainer.run()
+        try:
+            self.trainer.run()
+        except Exception as e:
+            self.error_signal.emit(f"Ошибка при обучении: {str(e)}")
 
 class TrainingWidget(QWidget):
     def __init__(self):
@@ -50,7 +56,7 @@ class TrainingWidget(QWidget):
 
         self.batch_size_combo = QComboBox()
         self.batch_size_combo.addItems(["1", "2", "4"])
-        self.batch_size_combo.setCurrentText("4") 
+        self.batch_size_combo.setCurrentText("4")
         layout.addWidget(self.batch_size_combo)
 
         self.epochs_label = QLabel("Количество эпох:")
@@ -58,7 +64,7 @@ class TrainingWidget(QWidget):
 
         self.epochs_field = QLineEdit()
         self.epochs_field.setPlaceholderText("Введите число")
-        self.epochs_field.setMaximumWidth(100)  
+        self.epochs_field.setMaximumWidth(100)
         self.epochs_field.setText("25")
         layout.addWidget(self.epochs_field)
 
@@ -94,6 +100,21 @@ class TrainingWidget(QWidget):
         if file:
             self.model_path_field.setText(file)
 
+    def check_images(self, dataset_path):
+        """Проверяет все изображения в папке на валидность."""
+        images = [img for img in os.listdir(dataset_path) if img.lower().endswith(('.jpg', '.jpeg'))]
+        if not images:
+            return False, "Папка не содержит изображений формата .jpg или .jpeg"
+        
+        for img_name in images:
+            img_path = os.path.join(dataset_path, img_name)
+            try:
+                with Image.open(img_path) as img:
+                    img.verify()  # Проверяем целостность изображения
+            except Exception as e:
+                return False, f"Поврежденное изображение '{img_name}': {str(e)}"
+        return True, ""
+
     def run_training(self):
         dataset_path = self.dataset_path_field.toPlainText()
         model_path = self.model_path_field.toPlainText()
@@ -102,21 +123,23 @@ class TrainingWidget(QWidget):
         try:
             epochs = int(self.epochs_field.text())
             if epochs <= 0:
-                raise ValueError("Количество эпох должно быть положительным числом.")
+                raise ValueError("Количество эпох должно быть положительным числом")
         except ValueError:
-            QMessageBox.warning(self, "Внимание", "Введите положительное число для количества эпох.")
+            QMessageBox.warning(self, "Внимание", "Введите положительное число для количества эпох")
             return
 
         if not dataset_path or not os.path.isdir(dataset_path):
-            QMessageBox.warning(self, "Внимание", "Выберите существующую папку с датасетом.")
+            QMessageBox.warning(self, "Внимание", "Выберите существующую папку с датасетом")
             return
-        images = [img for img in os.listdir(dataset_path) if img.lower().endswith(('.jpg', '.jpeg'))]
-        if not images:
-            QMessageBox.warning(self, "Внимание", "Выбранная папка не содержит изображений.")
+
+        # Предпроверка изображений
+        is_valid, error_message = self.check_images(dataset_path)
+        if not is_valid:
+            QMessageBox.critical(self, "Ошибка", "Выбранная папка содержит поврежденные изображения")
             return
 
         if not model_path:
-            QMessageBox.warning(self, "Внимание", "Выберите путь сохранения модели.")
+            QMessageBox.warning(self, "Внимание", "Выберите путь сохранения модели")
             return
 
         self.output_text.clear()
@@ -126,6 +149,7 @@ class TrainingWidget(QWidget):
         self.thread.trainer.epoch_complete_signal.connect(self.on_epoch_complete)
         self.thread.trainer.batch_progress_signal.connect(self.on_batch_progress)
         self.thread.trainer.training_complete_signal.connect(self.append_output)
+        self.thread.error_signal.connect(self.show_error)  # Подключаем обработчик ошибок
         self.thread.start()
 
     def on_epoch_start(self, epoch, total_epochs):
@@ -142,3 +166,6 @@ class TrainingWidget(QWidget):
 
     def append_output(self, text):
         self.output_text.append(text)
+
+    def show_error(self, error_message):
+        QMessageBox.critical(self, "Ошибка", error_message)

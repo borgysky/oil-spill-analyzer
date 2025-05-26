@@ -2,7 +2,7 @@ import sys
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QAction, QStackedWidget
 )
-from widgets.analyze import ImageAnalysisWidget
+from widgets.analyze_ui import ImageAnalysisWidget
 from widgets.train_ui import TrainingWidget
 from widgets.test_ui import TestingWidget
 

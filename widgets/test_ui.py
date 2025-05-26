@@ -11,6 +11,7 @@ from test import run_evaluation
 class TestingThread(QThread):
     output_signal = pyqtSignal(str)
     results_signal = pyqtSignal(dict)
+    error_signal = pyqtSignal(str)  # Новый сигнал для ошибок
 
     def __init__(self, image_path, model_path):
         super().__init__()
@@ -24,7 +25,7 @@ class TestingThread(QThread):
             self.output_signal.emit(output)
             self.results_signal.emit(results)
         except Exception as e:
-            self.output_signal.emit(f"Error: {str(e)}")
+            self.error_signal.emit(f"Не удалось загрузить изображение")  # Отправляем ошибку через новый сигнал
 
 class TestingWidget(QWidget):
     def __init__(self):
@@ -137,6 +138,7 @@ class TestingWidget(QWidget):
         self.thread = TestingThread(self.image_path, self.model_path)
         self.thread.output_signal.connect(self.append_output)
         self.thread.results_signal.connect(self.show_results)
+        self.thread.error_signal.connect(self.show_error)  # Подключаем обработчик ошибок
         self.thread.start()
 
     def append_output(self, text):
@@ -164,6 +166,9 @@ class TestingWidget(QWidget):
 
         pred_qimage = numpy_to_qimage(results["pred_mask"], is_grayscale=True)
         self.pred_mask_label.setPixmap(QPixmap.fromImage(pred_qimage))
+
+    def show_error(self, error_message):
+        QMessageBox.critical(self, "Ошибка", error_message)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

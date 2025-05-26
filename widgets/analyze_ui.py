@@ -81,14 +81,14 @@ class ImageAnalysisWidget(QWidget):
             QMessageBox.warning(self, "Внимание", "Выберите изображение и модель.")
             return
         try:
-            self.result_img = detect.analyze_save(self.image_path, self.model_path)
+            self.result_img = detect.analyze_return(self.image_path, self.model_path)
             height, width, channel = self.result_img.shape
             bytes_per_line = 3 * width
             qimg = QImage(self.result_img.data, width, height, bytes_per_line, QImage.Format_BGR888)
             pixmap = QPixmap.fromImage(qimg).scaled(500, 300, Qt.KeepAspectRatio)
             self.image_label.setPixmap(pixmap)
         except Exception as e:
-            QMessageBox.critical(self, "Ошибка", str(e))
+            QMessageBox.critical(self, "Ошибка", "Не удалось загрузить изображение")
 
     def save_result(self):
         if self.result_img is None:
@@ -105,4 +105,4 @@ class ImageAnalysisWidget(QWidget):
                 pil_img.save(save_path)
                 QMessageBox.information(self, "Сохранено", f"Результат сохранён в:\n{save_path}")
             except Exception as e:
-                QMessageBox.critical(self, "Ошибка при сохранении", str(e))
+                QMessageBox.critical(self, "Ошибка при сохранении", "Произошла ошибка при сохранении")
