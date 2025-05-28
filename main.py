@@ -42,7 +42,6 @@ class MainWindow(QMainWindow):
     def switch_mode(self, index):
         self.stack.setCurrentIndex(index)
 
-
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
