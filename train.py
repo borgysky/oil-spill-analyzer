@@ -10,13 +10,22 @@ from PIL import Image
 class dataset(Dataset):
     def __init__(self, image_dir, threshold=0.5):
         self.image_dir = image_dir
+        self.threshold = threshold
         self.images = [
-            img for img in os.listdir(image_dir) 
+            img for img in os.listdir(image_dir)
             if img.lower().endswith(('.jpg', '.jpeg'))
         ]
+        
         if not self.images:
             raise ValueError(f"Папка {image_dir} не содержит изображений формата .jpg или .jpeg")
-        self.threshold = threshold
+        
+        for img_name in self.images:
+            img_path = os.path.join(image_dir, img_name)
+            try:
+                with Image.open(img_path) as img:
+                    img.verify()
+            except Exception as e:
+                raise ValueError(f"Папка содержит поврежденные изображения")
 
     def __len__(self):
         return len(self.images)
@@ -25,7 +34,7 @@ class dataset(Dataset):
         path = os.path.join(self.image_dir, self.images[idx])
         img = Image.open(path).convert("L")
         if img is None:
-            raise ValueError(f"Ошибка загрузки изображения: {path}")    
+            raise ValueError(f"Ошибка загрузки изображения: {path}")
         img = img.resize((624, 320))
         img = np.array(img).astype(np.float32) / 255.0
         mask = (img < self.threshold).astype(np.float32)
@@ -39,7 +48,7 @@ class Trainer(QObject):
     batch_progress_signal = pyqtSignal(int, int, float)
     training_complete_signal = pyqtSignal(str)
 
-    def __init__(self, image_dir, save_path, batch_size=4, epochs=25, lr=1e-4, threshold=0.5):
+    def __init__(self, image_dir, save_path, batch_size=1, epochs=25, lr=1e-4, threshold=0.5):
         super().__init__()
         self.image_dir = image_dir
         self.save_path = save_path

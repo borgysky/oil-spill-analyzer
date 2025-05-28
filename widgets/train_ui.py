@@ -5,10 +5,9 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from train import Trainer
 import os
-from PIL import Image
 
 class TrainingThread(QThread):
-    error_signal = pyqtSignal(str)  # Новый сигнал для ошибок
+    error_signal = pyqtSignal(str)
 
     def __init__(self, dataset_path, model_path, batch_size, epochs):
         super().__init__()
@@ -56,7 +55,7 @@ class TrainingWidget(QWidget):
 
         self.batch_size_combo = QComboBox()
         self.batch_size_combo.addItems(["1", "2", "4"])
-        self.batch_size_combo.setCurrentText("4")
+        self.batch_size_combo.setCurrentText("1")
         layout.addWidget(self.batch_size_combo)
 
         self.epochs_label = QLabel("Количество эпох:")
@@ -100,21 +99,6 @@ class TrainingWidget(QWidget):
         if file:
             self.model_path_field.setText(file)
 
-    def check_images(self, dataset_path):
-        """Проверяет все изображения в папке на валидность."""
-        images = [img for img in os.listdir(dataset_path) if img.lower().endswith(('.jpg', '.jpeg'))]
-        if not images:
-            return False, "Папка не содержит изображений формата .jpg или .jpeg"
-        
-        for img_name in images:
-            img_path = os.path.join(dataset_path, img_name)
-            try:
-                with Image.open(img_path) as img:
-                    img.verify()  # Проверяем целостность изображения
-            except Exception as e:
-                return False, f"Поврежденное изображение '{img_name}': {str(e)}"
-        return True, ""
-
     def run_training(self):
         dataset_path = self.dataset_path_field.toPlainText()
         model_path = self.model_path_field.toPlainText()
@@ -132,12 +116,6 @@ class TrainingWidget(QWidget):
             QMessageBox.warning(self, "Внимание", "Выберите существующую папку с датасетом")
             return
 
-        # Предпроверка изображений
-        is_valid, error_message = self.check_images(dataset_path)
-        if not is_valid:
-            QMessageBox.critical(self, "Ошибка", "Выбранная папка содержит поврежденные изображения")
-            return
-
         if not model_path:
             QMessageBox.warning(self, "Внимание", "Выберите путь сохранения модели")
             return
@@ -149,7 +127,7 @@ class TrainingWidget(QWidget):
         self.thread.trainer.epoch_complete_signal.connect(self.on_epoch_complete)
         self.thread.trainer.batch_progress_signal.connect(self.on_batch_progress)
         self.thread.trainer.training_complete_signal.connect(self.append_output)
-        self.thread.error_signal.connect(self.show_error)  # Подключаем обработчик ошибок
+        self.thread.error_signal.connect(self.show_error)
         self.thread.start()
 
     def on_epoch_start(self, epoch, total_epochs):

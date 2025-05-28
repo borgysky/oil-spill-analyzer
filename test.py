@@ -23,12 +23,12 @@ def load_image(path, size=(624, 320)):
     img_np = np.array(img).astype(np.float32) / 255.0
     return img_np
 
-def run_evaluation(image_path, weights="unet_pseudo_oilspill.pth", threshold=0.5):
+def run_evaluation(image_path, weights, threshold=0.5):
     if not os.path.isfile(image_path):
-        raise FileNotFoundError(f"Image file '{image_path}' not found")
+        raise FileNotFoundError(f"Изображение '{image_path}' не найдено")
 
     if not os.path.isfile(weights):
-        raise FileNotFoundError(f"Model weights file '{weights}' not found")
+        raise FileNotFoundError(f"Параметры модели '{weights}' не найдены")
 
     original_img = Image.open(image_path)
     original_img_np = np.array(original_img).astype(np.uint8)

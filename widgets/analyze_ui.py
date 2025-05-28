@@ -28,7 +28,7 @@ class ImageAnalysisWidget(QWidget):
         self.select_button.clicked.connect(self.select_image)
         layout.addWidget(self.select_button)
 
-        self.model_label = QLabel("Путь к модели нейросети:")
+        self.model_label = QLabel("Путь к параметрам нейросети:")
         layout.addWidget(self.model_label)
 
         self.model_path_field = QTextEdit()

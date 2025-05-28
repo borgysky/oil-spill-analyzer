@@ -7,11 +7,12 @@ from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QPixmap, QImage
 import numpy as np
 from test import run_evaluation
+from PIL import UnidentifiedImageError
 
 class TestingThread(QThread):
     output_signal = pyqtSignal(str)
     results_signal = pyqtSignal(dict)
-    error_signal = pyqtSignal(str)  # Новый сигнал для ошибок
+    error_signal = pyqtSignal(str)
 
     def __init__(self, image_path, model_path):
         super().__init__()
@@ -24,8 +25,17 @@ class TestingThread(QThread):
             output = f"Коэффициент Dice: {results['dice']:.4f}\nЗначение IoU: {results['iou']:.4f}"
             self.output_signal.emit(output)
             self.results_signal.emit(results)
+        except FileNotFoundError as e:
+            if "Изображение" in str(e):
+                self.error_signal.emit(f"Не удалось загрузить изображение: {str(e)}")
+            elif "Параметры модели" in str(e):
+                self.error_signal.emit(f"Не удалось загрузить модель: {str(e)}")
+            else:
+                self.error_signal.emit(f"Ошибка: {str(e)}")
+        except UnidentifiedImageError:
+            self.error_signal.emit("Файл поврежден или не является изображением")
         except Exception as e:
-            self.error_signal.emit(f"Не удалось загрузить изображение")  # Отправляем ошибку через новый сигнал
+            self.error_signal.emit(f"Произошла ошибка: {str(e)}")
 
 class TestingWidget(QWidget):
     def __init__(self):
@@ -50,13 +60,13 @@ class TestingWidget(QWidget):
         layout.addWidget(self.select_image_button)
 
         # --- Model path ---
-        self.model_label = QLabel("Путь к модели нейросети:")
+        self.model_label = QLabel("Путь к параметрам нейросети:")
         layout.addWidget(self.model_label)
 
         self.model_path_field = QTextEdit()
         self.model_path_field.setReadOnly(True)
         self.model_path_field.setMaximumHeight(30)
-        self.image_path_field.setTextInteractionFlags(Qt.NoTextInteraction)
+        self.model_path_field.setTextInteractionFlags(Qt.NoTextInteraction)
         layout.addWidget(self.model_path_field)
 
         self.select_model_button = QPushButton("Выбрать модель")
@@ -65,7 +75,7 @@ class TestingWidget(QWidget):
 
         self.output_text = QTextEdit()
         self.output_text.setReadOnly(True)
-        self.output_text.setMaximumHeight(50) 
+        self.output_text.setMaximumHeight(50)
         layout.addWidget(QLabel("Результаты тестирования:"))
         layout.addWidget(self.output_text)
 
@@ -138,7 +148,7 @@ class TestingWidget(QWidget):
         self.thread = TestingThread(self.image_path, self.model_path)
         self.thread.output_signal.connect(self.append_output)
         self.thread.results_signal.connect(self.show_results)
-        self.thread.error_signal.connect(self.show_error)  # Подключаем обработчик ошибок
+        self.thread.error_signal.connect(self.show_error)
         self.thread.start()
 
     def append_output(self, text):
