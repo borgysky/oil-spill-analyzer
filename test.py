@@ -23,7 +23,7 @@ def load_image(path, size=(624, 320)):
     img_np = np.array(img).astype(np.float32) / 255.0
     return img_np
 
-def run_evaluation(image_path, weights, threshold=0.5):
+def run_evaluation(image_path, weights, threshold=0.3):
     if not os.path.isfile(image_path):
         raise FileNotFoundError(f"Изображение '{image_path}' не найдено")
 

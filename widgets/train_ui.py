@@ -134,8 +134,12 @@ class TrainingWidget(QWidget):
         self.append_output(f"Начало эпохи {epoch}/{total_epochs}")
         self.progress_bar.setValue(0)
 
-    def on_epoch_complete(self, epoch, avg_loss):
-        self.append_output(f"Эпоха {epoch} завершена. Средняя потеря: {avg_loss:.4f}")
+    def on_epoch_complete(self, epoch, avg_loss, avg_test_loss, avg_dice, avg_iou):
+        self.append_output(
+            f"Эпоха {epoch} завершена. "
+            f"Средняя потеря (обучение): {avg_loss:.4f}, (тест): {avg_test_loss:.4f}, "
+            f"Dice: {avg_dice:.4f}, IoU: {avg_iou:.4f}"
+        )
         self.progress_bar.setValue(100)
 
     def on_batch_progress(self, batch, total_batches, loss):

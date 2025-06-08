@@ -14,7 +14,7 @@ def load_model(model_path):
     model.eval()
     return model
 
-def analyze_return(image_path, model_path, threshold=0.5):
+def analyze_return(image_path, model_path, threshold=0.3):
     model = load_model(model_path)
     
     with open(image_path, "rb") as f:
